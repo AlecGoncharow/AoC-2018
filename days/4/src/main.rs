@@ -101,9 +101,69 @@ fn parse_input() -> Vec<Entry> {
     entries
 }
 
+fn most_slept_guard(entries: &Vec<Entry>) -> u32 {
+    let mut guards: HashMap<u32, u32> = HashMap::new();
+    let mut guard = 0;
+    let mut sleep = 0;
+    for entry in entries {
+        match entry.event {
+            Event::Begin(g) => guard = g,
+            Event::Sleep => sleep = entry.date_time.minute,
+            Event::Wake => {
+                match guards.get_mut(&guard) {
+                    Some(g) => *g += entry.date_time.minute - sleep,
+                    None => {
+                        guards.insert(guard, entry.date_time.minute - sleep);
+                    }
+                };
+            }
+        }
+    }
+
+    let mut most_slept = 0;
+    let mut m_guard = 0;
+    guards.iter().for_each(|(k, v)| {
+        if *v > most_slept {
+            m_guard = *k;
+            most_slept = *v;
+        }
+    });
+    m_guard
+}
+
+fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> u32 {
+    let mut sleep_map: HashMap<u32, u32> = HashMap::new();
+    let mut curr_guard: u32 = 0;
+    let mut sleep = 0;
+    for entry in entries {
+        match entry.event {
+            Event::Begin(g) => curr_guard = g,
+            Event::Sleep => sleep = entry.date_time.minute,
+            Event::Wake => {
+                if curr_guard == guard {
+                    for min in sleep..entry.date_time.minute {
+                        match sleep_map.get_mut(&min) {
+                            Some(m) => *m += 1,
+                            None => {
+                                sleep_map.insert(min, 1);
+                            }
+                        }
+                    }
+                };
+            }
+        }
+    }
+
+    *sleep_map.values().max().unwrap()
+}
+
 fn main() {
     let mut input = parse_input();
     println!("{:?}", input);
     input.sort();
     input.iter().for_each(|x| println!("{:?}", x));
+    let most_slept = most_slept_guard(&input);
+    println!("{}", most_slept);
+    let overlap = get_sleep_overlap(&input, most_slept);
+    println!("{}", overlap);
 }
