@@ -20,6 +20,7 @@ struct Rect {
     origin: Point,
     width: u32,
     height: u32,
+    id: u32,
 }
 
 impl Rect {
@@ -37,8 +38,8 @@ impl Rect {
     }
 }
 
-fn part_one() -> HashMap<Point, u32> {
-    let mut fabric: HashMap<Point, u32> = HashMap::new();
+fn parse_input() -> Vec<Rect> {
+    let mut rects = Vec::new();
     let file = BufReader::new(File::open("input/input.txt").unwrap());
     let re: regex::Regex =
         regex::Regex::new("#[0-9]+ @ ([0-9]+),([0-9]+): ([0-9]+)x([0-9]+)").unwrap();
@@ -52,7 +53,17 @@ fn part_one() -> HashMap<Point, u32> {
             },
             width: String::from(caps.get(3).unwrap().as_str()).parse().unwrap(),
             height: String::from(caps.get(4).unwrap().as_str()).parse().unwrap(),
+            id: String::from(caps.get(1).unwrap().as_str()).parse().unwrap(),
         };
+        rects.push(rect);
+    }
+    rects
+}
+
+fn part_one(rects: &Vec<Rect>) -> HashMap<Point, u32> {
+    let mut fabric: HashMap<Point, u32> = HashMap::new();
+
+    for rect in rects {
         let points = rect.points();
         for point in points {
             let fab = match fabric.get_mut(&point) {
@@ -75,22 +86,8 @@ fn part_one() -> HashMap<Point, u32> {
     fabric
 }
 
-fn part_two(fabric: &HashMap<Point, u32>) {
-    let file = BufReader::new(File::open("input/input.txt").unwrap());
-    let re: regex::Regex =
-        regex::Regex::new("#([0-9]+) @ ([0-9]+),([0-9]+): ([0-9]+)x([0-9]+)").unwrap();
-    for line in file.lines() {
-        let text = line.unwrap();
-        let caps = re.captures(&text).unwrap();
-        let id: u32 = String::from(caps.get(1).unwrap().as_str()).parse().unwrap();
-        let rect = Rect {
-            origin: Point {
-                x: String::from(caps.get(2).unwrap().as_str()).parse().unwrap(),
-                y: String::from(caps.get(3).unwrap().as_str()).parse().unwrap(),
-            },
-            width: String::from(caps.get(4).unwrap().as_str()).parse().unwrap(),
-            height: String::from(caps.get(5).unwrap().as_str()).parse().unwrap(),
-        };
+fn part_two(fabric: &HashMap<Point, u32>, rects: &Vec<Rect>) {
+    for rect in rects {
         let points = rect.points();
         let mut no_overlap = true;
         for point in points {
@@ -101,12 +98,13 @@ fn part_two(fabric: &HashMap<Point, u32>) {
             }
         }
         if no_overlap {
-            println!("{}", id);
+            println!("{}", rect.id);
         }
     }
 }
 
 fn main() {
-    let fabric = part_one();
-    part_two(&fabric);
+    let rects = parse_input();
+    let fabric = part_one(&rects);
+    part_two(&fabric, &rects);
 }
