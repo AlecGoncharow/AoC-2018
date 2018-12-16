@@ -8,6 +8,7 @@ use std::io::{BufRead, BufReader};
 struct DateTime {
     month: u32,
     day: u32,
+    hour: u32,
     minute: u32,
 }
 
@@ -21,7 +22,11 @@ impl std::cmp::Ord for DateTime {
     fn cmp(&self, other: &DateTime) -> Ordering {
         match self.month.cmp(&other.month) {
             Ordering::Equal => match self.day.cmp(&other.day) {
-                Ordering::Equal => self.minute.cmp(&other.minute),
+                Ordering::Equal => match self.hour.cmp(&other.hour) {
+                    Ordering::Equal => self.minute.cmp(&other.minute),
+                    Ordering::Less => Ordering::Less,
+                    Ordering::Greater => Ordering::Greater,
+                },
                 Ordering::Less => Ordering::Less,
                 Ordering::Greater => Ordering::Greater,
             },
@@ -78,7 +83,7 @@ fn parse_input() -> Vec<Entry> {
     let mut entries = Vec::new();
     let file = BufReader::new(File::open("input/input.txt").unwrap());
     let re: regex::Regex =
-        regex::Regex::new(r"\[\d+-(\d+)-(\d+) \d+:(\d+)\] (\w+) #?(\d*)").unwrap();
+        regex::Regex::new(r"\[\d+-(\d+)-(\d+) (\d)+:(\d+)\] (\w+) #?(\d*)").unwrap();
     for line in file.lines() {
         let text = line.unwrap();
         let caps = re.captures(&text).unwrap();
@@ -86,11 +91,12 @@ fn parse_input() -> Vec<Entry> {
             date_time: DateTime {
                 month: String::from(caps.get(1).unwrap().as_str()).parse().unwrap(),
                 day: String::from(caps.get(2).unwrap().as_str()).parse().unwrap(),
-                minute: String::from(caps.get(3).unwrap().as_str()).parse().unwrap(),
+                hour: String::from(caps.get(3).unwrap().as_str()).parse().unwrap(),
+                minute: String::from(caps.get(4).unwrap().as_str()).parse().unwrap(),
             },
-            event: match caps.get(4).unwrap().as_str() {
+            event: match caps.get(5).unwrap().as_str() {
                 "Guard" => {
-                    Event::Begin(String::from(caps.get(5).unwrap().as_str()).parse().unwrap())
+                    Event::Begin(String::from(caps.get(6).unwrap().as_str()).parse().unwrap())
                 }
                 "wakes" => Event::Wake,
                 "falls" => Event::Sleep,
@@ -99,6 +105,21 @@ fn parse_input() -> Vec<Entry> {
         });
     }
     entries
+}
+
+fn get_guards(entries: &[Entry]) -> Vec<u32> {
+    let mut guards = Vec::new();
+    for entry in entries {
+        match entry.event {
+            Event::Begin(g) => {
+                if !guards.contains(&g) {
+                    guards.push(g);
+                }
+            }
+            _ => continue,
+        }
+    }
+    guards
 }
 
 fn most_slept_guard(entries: &Vec<Entry>) -> u32 {
@@ -111,7 +132,7 @@ fn most_slept_guard(entries: &Vec<Entry>) -> u32 {
             Event::Sleep => sleep = entry.date_time.minute,
             Event::Wake => {
                 match guards.get_mut(&guard) {
-                    Some(g) => *g += entry.date_time.minute - sleep,
+                    Some(g) => *g += entry.date_time.minute - 1 - sleep,
                     None => {
                         guards.insert(guard, entry.date_time.minute - sleep);
                     }
@@ -133,7 +154,7 @@ fn most_slept_guard(entries: &Vec<Entry>) -> u32 {
     m_guard
 }
 
-fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> u32 {
+fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> (u32, u32) {
     let mut sleep_map: HashMap<u32, u32> = HashMap::new();
     let mut curr_guard: u32 = 0;
     let mut sleep = 0;
@@ -155,17 +176,21 @@ fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> u32 {
                 };
             }
         }
+        if curr_guard == guard {
+            println!("{:?}", entry);
+        }
     }
 
-    let mut most_slept = 0;
+    let mut most_over = 0;
     let mut min = 0;
     sleep_map.iter().for_each(|(k, v)| {
-        if *v > most_slept {
-            most_slept = *v;
+        if most_over < *v {
+            println!("{}: {}", k, v);
             min = *k;
+            most_over = *v
         }
     });
-    min
+    (min, most_over)
 }
 
 fn main() {
@@ -176,5 +201,18 @@ fn main() {
     let most_slept = most_slept_guard(&input);
     println!("{}", most_slept);
     let overlap = get_sleep_overlap(&input, most_slept);
-    println!("{}", overlap);
+    println!("{:?}", overlap);
+    let guards = get_guards(&input);
+    let mut most_over = 0;
+    let mut most_guard = 0;
+    let mut count = 0;
+    for guard in guards {
+        let (k, v) = get_sleep_overlap(&input, guard);
+        if v > count {
+            count = v;
+            most_over = k;
+            most_guard = guard;
+        }
+    }
+    println!("{}: {} - {}", most_guard, most_over, count);
 }
