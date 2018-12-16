@@ -126,8 +126,10 @@ fn most_slept_guard(entries: &Vec<Entry>) -> u32 {
         if *v > most_slept {
             m_guard = *k;
             most_slept = *v;
+            println!("{}", most_slept);
         }
     });
+    println!("{:?}", guards.values().max().unwrap());
     m_guard
 }
 
@@ -141,6 +143,7 @@ fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> u32 {
             Event::Sleep => sleep = entry.date_time.minute,
             Event::Wake => {
                 if curr_guard == guard {
+                    println!("{}-{}", sleep, entry.date_time.minute);
                     for min in sleep..entry.date_time.minute {
                         match sleep_map.get_mut(&min) {
                             Some(m) => *m += 1,
@@ -154,7 +157,15 @@ fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> u32 {
         }
     }
 
-    *sleep_map.values().max().unwrap()
+    let mut most_slept = 0;
+    let mut min = 0;
+    sleep_map.iter().for_each(|(k, v)| {
+        if *v > most_slept {
+            most_slept = *v;
+            min = *k;
+        }
+    });
+    min
 }
 
 fn main() {
