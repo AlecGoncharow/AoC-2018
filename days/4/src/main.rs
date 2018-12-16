@@ -107,6 +107,21 @@ fn parse_input() -> Vec<Entry> {
     entries
 }
 
+fn get_guards(entries: &[Entry]) -> Vec<u32> {
+    let mut guards = Vec::new();
+    for entry in entries {
+        match entry.event {
+            Event::Begin(g) => {
+                if !guards.contains(&g) {
+                    guards.push(g);
+                }
+            }
+            _ => continue,
+        }
+    }
+    guards
+}
+
 fn most_slept_guard(entries: &Vec<Entry>) -> u32 {
     let mut guards: HashMap<u32, u32> = HashMap::new();
     let mut guard = 0;
@@ -137,7 +152,7 @@ fn most_slept_guard(entries: &Vec<Entry>) -> u32 {
     m_guard
 }
 
-fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> u32 {
+fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> (u32, u32) {
     let mut sleep_map: HashMap<u32, u32> = HashMap::new();
     let mut curr_guard: u32 = 0;
     let mut sleep = 0;
@@ -172,7 +187,7 @@ fn get_sleep_overlap(entries: &Vec<Entry>, guard: u32) -> u32 {
             most_over = *v
         }
     });
-    min
+    (min, most_over)
 }
 
 fn main() {
@@ -183,5 +198,18 @@ fn main() {
     let most_slept = most_slept_guard(&input);
     println!("{}", most_slept);
     let overlap = get_sleep_overlap(&input, most_slept);
-    println!("{}", overlap);
+    println!("{:?}", overlap);
+    let guards = get_guards(&input);
+    let mut most_over = 0;
+    let mut most_guard = 0;
+    let mut count = 0;
+    for guard in guards {
+        let (k, v) = get_sleep_overlap(&input, guard);
+        if v > count {
+            count = v;
+            most_over = k;
+            most_guard = guard;
+        }
+    }
+    println!("{}: {} - {}", most_guard, most_over, count);
 }
