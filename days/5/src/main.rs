@@ -1,13 +1,13 @@
 use std::fs::File;
 use std::io::{BufRead, BufReader};
 
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Clone, Eq, Debug)]
 enum Case {
     Upper,
     Lower,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Unit {
     unit: char,
     case: Case,
@@ -16,7 +16,7 @@ struct Unit {
 impl Unit {
     fn react(&self, other: &Unit) -> bool {
         if self.unit == other.unit {
-            self.case == other.case
+            self.case != other.case
         } else {
             false
         }
@@ -46,25 +46,22 @@ fn parse_input() -> Vec<Unit> {
     ret
 }
 
-fn scan_polymer(input: Vec<Unit>) -> Vec<Unit> {
+fn scan_polymer(input: &Vec<Unit>, ignore: char) -> Vec<Unit> {
     let mut polymer: Vec<Unit> = Vec::with_capacity(input.len());
-    println!(
-        "scanning, input_len:{}, polymer_len: {}",
-        input.len(),
-        polymer.len()
-    );
     for unit in input {
-        println!("scanning polymer_len: {}", polymer.len());
+        if unit.unit == ignore {
+            continue;
+        }
         match polymer.last() {
             Some(u) => {
                 if u.react(&unit) {
                     polymer.pop();
                 } else {
-                    polymer.push(unit);
+                    polymer.push(unit.clone());
                 }
             }
             None => {
-                polymer.push(unit);
+                polymer.push(unit.clone());
             }
         }
     }
@@ -73,6 +70,10 @@ fn scan_polymer(input: Vec<Unit>) -> Vec<Unit> {
 
 fn main() {
     let input = parse_input();
-    let poly = scan_polymer(input);
-    println!("{:?}, {}", poly, poly.len());
+    let poly = scan_polymer(&input, ' ');
+    println!("none: {}", poly.len());
+    for c in b'a'..b'z' {
+        let ch = c as char;
+        println!("{}: {}", ch, scan_polymer(&input, ch).len());
+    }
 }
